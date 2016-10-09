@@ -22,6 +22,10 @@ unsigned char pickLargest(unsigned char j, unsigned char k, unsigned char l, uns
     return largest;
 }
 
-unsigned char convolve(unsigned char input[][], unsigned char weight[][], int i, int ii, int j, int jj) {
-    return input[i + ii - 1][j + jj - 1] * weight[ii][jj];
+int clamp(int c) {
+    if (c < 0)
+        return 0;
+    if (c > 255)
+        return 255;
+    return c;
 }
