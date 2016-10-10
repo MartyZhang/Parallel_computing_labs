@@ -3,12 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "wm.h"
+#include <omp.h>
 #include "helpers.h"
-
-int getIndex(int row, int col, int color) {
-    return row + col + color;
-}
-
 
 void process(char *input_filename, char *output_filename) {
     unsigned error;
@@ -23,32 +19,41 @@ void process(char *input_filename, char *output_filename) {
     int weight_size = 3;
 
     new_image = malloc(new_width * new_height * 4 * sizeof(unsigned char));
-    int RED = 0;
-    int GREEN = 1;
-    int BLUE = 2;
-    int ALPHA = 3;
-
-    int r = 0, g = 0, b = 0, a = 0, index = 0;
+    int RED = 0, GREEN = 1, BLUE = 2, ALPHA = 3;
+#pragma omp parallel for
     for (int i = 1; i < height; i++) {
+#pragma omp parallel for
         for (int j = 1; j < width; j++) {
 
+            int r = 0, g = 0, b = 0, a = 0, indexR = 0, indexG = 0, indexB = 0;
             for (int ii = 0; ii < weight_size; ii++) {
+#pragma omp parallel for reduction (+:r)
                 for (int jj = 0; jj < weight_size; jj++) {
-
-                    index = (int) (4 * width * (i + ii - 1) + 4 * (j + jj - 1));
-                    r += image[index + RED] * w[ii][jj];
-                    g += image[index + GREEN] * w[ii][jj];
-                    b += image[index + BLUE] * w[ii][jj];
-                    //a += image[index + ALPHA] * w[ii][jj];
+                    indexR = (int) (4 * width * (i + ii - 1) + 4 * (j + jj - 1));
+                    r += image[indexR + RED] * w[ii][jj];
                 }
             }
 
-            new_image[4 * new_width * i + 4 * j + 0] = (unsigned char) clamp(r);
-            new_image[4 * new_width * i + 4 * j + 1] = (unsigned char) clamp(g);
-            new_image[4 * new_width * i + 4 * j + 2] = (unsigned char) clamp(b);
-            new_image[4 * new_width * i + 4 * j + 3] = 255;
+            for (int ii = 0; ii < weight_size; ii++) {
+#pragma omp parallel for reduction (+:g)
+                for (int jj = 0; jj < weight_size; jj++) {
+                    indexG = (int) (4 * width * (i + ii - 1) + 4 * (j + jj - 1));
+                    g += image[indexG + GREEN] * w[ii][jj];
+                }
+            }
 
-            r = g = b = a = 0;
+            for (int ii = 0; ii < weight_size; ii++) {
+#pragma omp parallel for reduction (+:b)
+                for (int jj = 0; jj < weight_size; jj++) {
+                    indexB = (int) (4 * width * (i + ii - 1) + 4 * (j + jj - 1));
+                    b += image[indexB + BLUE] * w[ii][jj];
+                }
+            }
+
+            new_image[4 * new_width * i + 4 * j + RED] = (unsigned char) clamp(r);
+            new_image[4 * new_width * i + 4 * j + GREEN] = (unsigned char) clamp(g);
+            new_image[4 * new_width * i + 4 * j + BLUE] = (unsigned char) clamp(b);
+            new_image[4 * new_width * i + 4 * j + ALPHA] = 255;
         }
     }
 
