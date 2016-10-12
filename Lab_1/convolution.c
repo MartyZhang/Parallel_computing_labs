@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include "wm.h"
-#include <omp.h>
 #include "helpers.h"
 
 void process(char *input_filename, char *output_filename) {
@@ -21,20 +20,19 @@ void process(char *input_filename, char *output_filename) {
 
     new_image = malloc(new_width * new_height * 4 * sizeof(unsigned char));
     int RED = 0, GREEN = 1, BLUE = 2, ALPHA = 3;
-
-    int r = 0, g = 0, b = 0, index = 0, indexG = 0, indexB = 0;
+    int r = 0, g = 0, b = 0, index = 0;
 
     clock_t start = clock();
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for
     for (int i = 1; i < height; i++) {
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for
         for (int j = 1; j < width; j++) {
 
             r = g = b = 0;
 
             for (int ii = 0; ii < weight_size; ii++) {
-#pragma omp parallel for reduction (+:r,g,b) num_threads(8)
+#pragma omp parallel for reduction (+:r,g,b)
                 for (int jj = 0; jj < weight_size; jj++) {
                     index = 4 * width * (i + ii - 1) + 4 * (j + jj - 1);
                     r += image[index + RED] * w[ii][jj];
@@ -51,7 +49,7 @@ void process(char *input_filename, char *output_filename) {
     }
 
     clock_t end = clock();
-    printf("Time Taken: %f\n", (double) (end - start) / CLOCKS_PER_SEC);
+    printf("Time Taken: %f ms\n", (double) (end - start) / CLOCKS_PER_SEC * 1000);
 
     lodepng_encode32_file(output_filename, new_image, new_width, new_height);
 
