@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "helpers.h"
+#include <omp.h>
+#include <time.h>
 
 void process(char *input_filename, char *output_filename) {
     unsigned error;
@@ -11,29 +13,23 @@ void process(char *input_filename, char *output_filename) {
 
     error = lodepng_decode32_file(&image, &width, &height, input_filename);
     if (error) printf("error %u: %s\n", error, lodepng_error_text(error));
-    unsigned new_width = width / 2;
-    unsigned new_height = height / 2;
-    new_image = malloc(new_width * new_height * 4 * sizeof(unsigned char));
-
+    new_image = malloc(width * height * 4 * sizeof(unsigned char));
+    
+    clock_t begin = clock();
+    // #pragma omp parallel for num_threads(4)
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-            new_image[2 * new_width * i + 2 * j + 0] = pickLargest(image[4 * width * i + 4 * j],
-                                                                   image[4 * width * i + 4 * (j + 1)],
-                                                                   image[4 * width * (i + 1) + 4 * j],
-                                                                   image[4 * width * (i + 1) + 4 * (j + 1)]);
-            new_image[2 * new_width * i + 2 * j + 1] = pickLargest(image[4 * width * i + 4 * j + 1],
-                                                                   image[4 * width * i + 4 * (j + 1) + 1],
-                                                                   image[4 * width * (i + 1) + 4 * j + 1],
-                                                                   image[4 * width * (i + 1) + 4 * (j + 1) + 1]);
-            new_image[2 * new_width * i + 2 * j + 2] = pickLargest(image[4 * width * i + 4 * j + 2],
-                                                                   image[4 * width * i + 4 * (j + 1) + 2],
-                                                                   image[4 * width * (i + 1) + 4 * j + 2],
-                                                                   image[4 * width * (i + 1) + 4 * (j + 1) + 2]);
-            new_image[2 * new_width * i + 2 * j + 3] = 255; //Opacity
+            new_image[4 * width * i + 4 * j] = rectify(image[4*width*i + 4*j]);
+            new_image[4 * width * i + 4 * j + 1] = rectify(image[4*width*i + 4*j + 1]);
+            new_image[4 * width * i + 4 * j + 2] = rectify(image[4*width*i + 4*j + 2]);
+            new_image[4 * width * i + 4 * j + 3] = 255; //Opacity
         }
     }
+    clock_t end = clock();
+    double total = (double)(end - begin)/CLOCKS_PER_SEC;
 
-    lodepng_encode32_file(output_filename, new_image, new_width, new_height);
+    printf("runtime is %f \n", total);
+    lodepng_encode32_file(output_filename, new_image, width, height);
 
     free(image);
     free(new_image);

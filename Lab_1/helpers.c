@@ -6,7 +6,6 @@ int rectify(int c) {
 
 unsigned char pickLargest(unsigned char j, unsigned char k, unsigned char l, unsigned char m) {
     unsigned char largest = j;
-    printf("%d %d %d %d \n", j, k, l, m);
     if (k > largest) {
         largest = k;
     }
@@ -18,7 +17,7 @@ unsigned char pickLargest(unsigned char j, unsigned char k, unsigned char l, uns
     if (m > largest) {
         largest = m;
     }
-    printf("%d \n", largest);
+    
     return largest;
 }
 
