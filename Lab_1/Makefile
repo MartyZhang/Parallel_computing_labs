@@ -1,16 +1,16 @@
-CC=gcc -Wall -std=c11
+CC=gcc-5 -fopenmp -Wall -std=c11
 
 default:
-	$(CC) lodepng_test.c lodepng.c -o rectify
+	$(CC) lodepng_test.c rectify.c -o rectify
 	$(CC) lodepng_test.c pooling.c -o pool
 	$(CC) lodepng_test.c lodepng.c -o convolve
 
 rect:
-	$(CC) lodepng_test.c lodepng.c -o rectify
+	$(CC) helpers.c lodepng.c rectify.c -o rectify
 	./rectify data/test.png output/rectify.png
 
 pool:
-	$(CC) lodepng.c lodepng.h pooling.c -o pool
+	$(CC) helpers.c lodepng.c pooling.c -o pool
 	./pool data/test.png output/pool.png
 
 conv:
