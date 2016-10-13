@@ -7,15 +7,15 @@ default:
 
 rect:
 	$(CC) helpers.c lodepng.c rectify.c -o rectify
-	./rectify data/test.png output/rectify.png
+	./rectify data/test.png output/rectify.png 1
 
 pool:
 	$(CC) helpers.c lodepng.c pooling.c -o pool
-	./pool data/test.png output/pool.png
+	./pool data/test.png output/pool.png 1
 
 conv:
-	$(CC) lodepng.c lodepng.h wm.h convolution.c -o convolve
-	#./convolve data/test.png output/convolve.png
+	$(CC) helpers.c lodepng.h lodepng.c wm.h convolution_pthread.c -o convolve
+	./convolve data/test.png output/convolve.png 1
 
 clean:
 	-rm -f rectify
