@@ -17,16 +17,11 @@ void process(char *input_filename, char *output_filename, int num_threads) {
     new_image = malloc(new_width * new_height * 4 * sizeof(unsigned char));
 
     clock_t begin = clock();
-<<<<<<< HEAD
-    
-    #pragma omp parallel for num_threads(num_threads)
-=======
+
 
     int index = 0, RED = 0, GREEN = 1, BLUE = 2, ALPHA = 3;
-#pragma omp parallel for
->>>>>>> 7cdf4ba8ddb922f2435b0024682ce1d10f669fc3
+    #pragma omp parallel for num_threads(num_threads)
     for (int i = 0; i < height; i += 2) {
-#pragma omp parallel for
         for (int j = 0; j < width; j += 2) {
             index = 2 * new_width * i + 2 * j;
 
@@ -45,11 +40,7 @@ void process(char *input_filename, char *output_filename, int num_threads) {
             new_image[index + ALPHA] = 255;
         }
     }
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> 7cdf4ba8ddb922f2435b0024682ce1d10f669fc3
     clock_t end = clock();
     double total = 1000.0 * (end - begin) / CLOCKS_PER_SEC;
 
