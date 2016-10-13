@@ -2,7 +2,6 @@
 #include "lodepng.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <omp.h>
 #include <time.h>
 #include "helpers.h"
 
@@ -17,33 +16,44 @@ void process(char *input_filename, char *output_filename, int num_threads) {
     unsigned new_height = height / 2;
     new_image = malloc(new_width * new_height * 4 * sizeof(unsigned char));
 
-    //process
-
     clock_t begin = clock();
+<<<<<<< HEAD
     
     #pragma omp parallel for num_threads(num_threads)
+=======
+
+    int index = 0, RED = 0, GREEN = 1, BLUE = 2, ALPHA = 3;
+#pragma omp parallel for
+>>>>>>> 7cdf4ba8ddb922f2435b0024682ce1d10f669fc3
     for (int i = 0; i < height; i += 2) {
+#pragma omp parallel for
         for (int j = 0; j < width; j += 2) {
-            new_image[2 * new_width * i + 2 * j + 0] = pickLargest(image[4 * width * i + 4 * j],
-                                                                   image[4 * width * i + 4 * (j + 1)],
-                                                                   image[4 * width * (i + 1) + 4 * j],
-                                                                   image[4 * width * (i + 1) + 4 * (j + 1)]);
-            new_image[2 * new_width * i + 2 * j + 1] = pickLargest(image[4 * width * i + 4 * j + 1],
-                                                                   image[4 * width * i + 4 * (j + 1) + 1],
-                                                                   image[4 * width * (i + 1) + 4 * j + 1],
-                                                                   image[4 * width * (i + 1) + 4 * (j + 1) + 1]);
-            new_image[2 * new_width * i + 2 * j + 2] = pickLargest(image[4 * width * i + 4 * j + 2],
-                                                                   image[4 * width * i + 4 * (j + 1) + 2],
-                                                                   image[4 * width * (i + 1) + 4 * j + 2],
-                                                                   image[4 * width * (i + 1) + 4 * (j + 1) + 2]);
-            new_image[2 * new_width * i + 2 * j + 3] = 255; //Opacity
+            index = 2 * new_width * i + 2 * j;
+
+            new_image[index + RED] = pickLargest(image[4 * width * i + 4 * j],
+                                                 image[4 * width * i + 4 * (j + 1)],
+                                                 image[4 * width * (i + 1) + 4 * j],
+                                                 image[4 * width * (i + 1) + 4 * (j + 1)]);
+            new_image[index + GREEN] = pickLargest(image[4 * width * i + 4 * j + 1],
+                                                   image[4 * width * i + 4 * (j + 1) + 1],
+                                                   image[4 * width * (i + 1) + 4 * j + 1],
+                                                   image[4 * width * (i + 1) + 4 * (j + 1) + 1]);
+            new_image[index + BLUE] = pickLargest(image[4 * width * i + 4 * j + 2],
+                                                  image[4 * width * i + 4 * (j + 1) + 2],
+                                                  image[4 * width * (i + 1) + 4 * j + 2],
+                                                  image[4 * width * (i + 1) + 4 * (j + 1) + 2]);
+            new_image[index + ALPHA] = 255;
         }
     }
+<<<<<<< HEAD
     
-    clock_t end = clock();
-    double total = (double)(end - begin)/CLOCKS_PER_SEC;
+=======
 
-    printf("runtime is %f \n", total);
+>>>>>>> 7cdf4ba8ddb922f2435b0024682ce1d10f669fc3
+    clock_t end = clock();
+    double total = 1000.0 * (end - begin) / CLOCKS_PER_SEC;
+
+    printf("runtime is %f ms\n", total);
 
     lodepng_encode32_file(output_filename, new_image, new_width, new_height);
 

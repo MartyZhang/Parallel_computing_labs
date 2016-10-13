@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.6)
+project(pooling)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -std=c11")
+set(SOURCE_FILES lodepng.h lodepng.c helpers.h helpers.c pooling.c)
+add_executable(pooling ${SOURCE_FILES})
