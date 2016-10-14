@@ -19,9 +19,8 @@ void process(char *input_filename, char *output_filename) {
     clock_t begin = clock();
 
     int index = 0, RED = 0, GREEN = 1, BLUE = 2, ALPHA = 3;
-#pragma omp parallel for
+//#pragma omp parallel for
     for (int i = 0; i < height; i += 2) {
-#pragma omp parallel for
         for (int j = 0; j < width; j += 2) {
             index = 2 * new_width * i + 2 * j;
 
@@ -42,7 +41,7 @@ void process(char *input_filename, char *output_filename) {
     }
 
     clock_t end = clock();
-    double total = 1000.0 * (end - begin) / CLOCKS_PER_SEC;
+    float total = 1000.0 * (end - begin) / CLOCKS_PER_SEC;
 
     printf("runtime is %f ms\n", total);
 

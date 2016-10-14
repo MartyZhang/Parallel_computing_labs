@@ -24,9 +24,8 @@ void process(char *input_filename, char *output_filename) {
 
     clock_t start = clock();
 
-#pragma omp parallel for
+#pragma omp parallel for num_threads(8)
     for (int i = 1; i < height; i++) {
-#pragma omp parallel for
         for (int j = 1; j < width; j++) {
 
             r = g = b = 0;
@@ -49,7 +48,8 @@ void process(char *input_filename, char *output_filename) {
     }
 
     clock_t end = clock();
-    printf("Time Taken: %f ms\n", (double) (end - start) / CLOCKS_PER_SEC * 1000);
+    float time = 1000.0 * (end - start) / CLOCKS_PER_SEC;
+    printf("Time Taken: %f ms\n", time);
 
     lodepng_encode32_file(output_filename, new_image, new_width, new_height);
 
