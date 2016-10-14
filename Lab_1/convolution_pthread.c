@@ -57,7 +57,6 @@ void process(char *input_filename, char *output_filename, int NUM_THREADS) {
     if (error) printf("error %u: %s\n", error, lodepng_error_text(error));
     unsigned new_width = width - 2;
     unsigned new_height = height - 2;
-    int weight_size = 3;
 
     new_image = malloc(new_width * new_height * 4 * sizeof(unsigned char));
 

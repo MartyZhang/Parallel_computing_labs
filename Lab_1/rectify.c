@@ -28,9 +28,9 @@ void process(char *input_filename, char *output_filename, int num_threads) {
     }
 
     clock_t end = clock();
-    double total = (double)(end - begin)/CLOCKS_PER_SEC;
+    double total = (double)(end - begin)/CLOCKS_PER_SEC * 1000.0;
 
-    printf("runtime is %f \n", total);
+    printf("runtime is %f ms \n", total);
     lodepng_encode32_file(output_filename, new_image, width, height);
 
     free(image);
