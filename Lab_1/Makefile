@@ -1,9 +1,9 @@
 CC=gcc -fopenmp -Wall -std=c11
 
 default:
-	make rect
-	make pool
-	make conv
+	Make rect
+	Make pool
+	Make conv
 
 rect:
 	$(CC) helpers.c lodepng.c rectify.c -o rectify
@@ -18,6 +18,6 @@ conv:
 	./convolve data/test.png output/convolve.png 1
 
 clean:
-	rm -f rectify
-	rm -f pool
-	rm -f convolve
+	-rm -f rectify
+	-rm -f pool
+	-rm -f convolve
