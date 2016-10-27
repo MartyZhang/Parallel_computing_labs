@@ -5,7 +5,7 @@
 #include <time.h>
 #include "helpers.h"
 
-void process(char *input_filename, char *output_filename) {
+void process(char *input_filename, char *output_filename, int num_threads) {
     unsigned error;
     unsigned char *image, *new_image;
     unsigned width, height;
@@ -17,13 +17,12 @@ void process(char *input_filename, char *output_filename) {
     new_image = malloc(new_width * new_height * 4 * sizeof(unsigned char));
 
     clock_t begin = clock();
+    int RED = 0, GREEN = 1, BLUE = 2, ALPHA = 3;
 
-    int index = 0, RED = 0, GREEN = 1, BLUE = 2, ALPHA = 3;
-//#pragma omp parallel for
+    #pragma omp parallel for num_threads(num_threads)
     for (int i = 0; i < height; i += 2) {
         for (int j = 0; j < width; j += 2) {
-            index = 2 * new_width * i + 2 * j;
-
+            int index = 2 * new_width * i + 2 * j;
             new_image[index + RED] = pickLargest(image[4 * width * i + 4 * j],
                                                  image[4 * width * i + 4 * (j + 1)],
                                                  image[4 * width * (i + 1) + 4 * j],
@@ -54,8 +53,8 @@ void process(char *input_filename, char *output_filename) {
 int main(int argc, char *argv[]) {
     char *input_filename = argv[1];
     char *output_filename = argv[2];
-
-    process(input_filename, output_filename);
+    int num_threads = atoi(argv[3]);
+    process(input_filename, output_filename, num_threads);
 
     return 0;
 }

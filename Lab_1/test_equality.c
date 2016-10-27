@@ -25,6 +25,13 @@ float get_MSE(char *input_filename_1, char *input_filename_2) {
         im1 = (float) image1[i];
         im2 = (float) image2[i];
         diff = im1 - im2;
+
+        if (diff > 1 || diff < -1){
+            printf("%d\n", i);
+            printf("Image 1: %f, image 2: %f", (float)image1[i], (float)image2[i]);
+            break;
+        }
+
         sum += diff * diff;
     }
     MSE = sqrt(sum) / (width1 * height1 * 4);

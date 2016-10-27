@@ -6,7 +6,7 @@
 #include <omp.h>
 #include <time.h>
 
-void process(char *input_filename, char *output_filename) {
+void process(char *input_filename, char *output_filename, int num_threads) {
     unsigned error;
     unsigned char *image, *new_image;
     unsigned width, height;
@@ -16,7 +16,8 @@ void process(char *input_filename, char *output_filename) {
     new_image = malloc(width * height * 4 * sizeof(unsigned char));
     
     clock_t begin = clock();
-    // #pragma omp parallel for num_threads(4)
+
+    #pragma omp parallel for num_threads(num_threads)
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             new_image[4 * width * i + 4 * j] = rectify(image[4*width*i + 4*j]);
@@ -25,10 +26,11 @@ void process(char *input_filename, char *output_filename) {
             new_image[4 * width * i + 4 * j + 3] = 255; //Opacity
         }
     }
-    clock_t end = clock();
-    double total = (double)(end - begin)/CLOCKS_PER_SEC;
 
-    printf("runtime is %f \n", total);
+    clock_t end = clock();
+    double total = (double)(end - begin)/CLOCKS_PER_SEC * 1000.0;
+
+    printf("runtime is %f ms \n", total);
     lodepng_encode32_file(output_filename, new_image, width, height);
 
     free(image);
@@ -38,8 +40,9 @@ void process(char *input_filename, char *output_filename) {
 int main(int argc, char *argv[]) {
     char *input_filename = argv[1];
     char *output_filename = argv[2];
+    int num_threads = atoi(argv[3]);
 
-    process(input_filename, output_filename);
+    process(input_filename, output_filename, num_threads);
 
     return 0;
 }
