@@ -12,19 +12,21 @@ p = 1
 G = 10
 rowLength = 512
 
-T = int(sys.argv[1])
-arrayWidth = int(rowLength / size)
 
 # Create a 3D Array with  
-intensities = numpy.zeros((arrayWidth, arrayWidth, T), dtype=numpy.int)
 
 # rowLength must be divisible by the number of processes
-assert rowLength % size == 0
 
 comm = MPI.COMM_WORLD
 size = MPI.COMM_WORLD.Get_size()
 rank = MPI.COMM_WORLD.Get_rank()
 name = MPI.Get_processor_name()
+
+Time = int(sys.argv[1])
+arrayWidth = int(rowLength / size)
+assert rowLength % size == 0
+intensities = numpy.zeros((rowLength, arrayWidth, T), dtype=numpy.int)
+
 
 def Send(rank, intensity):
     comm.Send(intensity, dest=rank)
