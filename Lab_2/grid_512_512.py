@@ -30,11 +30,9 @@ slot = rowLength/2 + 1
 offset = (slot)%arrayWidth - 1
 
 #special rank is the process which contains 257,257
-specialRank = int(slot/arrayWidth)
+centerRank = int(slot/arrayWidth)
 #initialize that slot to 1
-if(rank==specialRank):
-    if(rank==specialRank):
-        print "%f" % intensities[slot-1][offset][0]
+if(rank==centerRank):
     #initialize the first drum hit
     intensities[slot-1][offset][0] = 1.0
     intensities[slot-1][offset][1] = 1.0
@@ -56,15 +54,10 @@ def CalculateNewIntensity(top, left, right, bottom, lastTimeStep, lastLastTimeSt
 right = 0
 left = 1
 
-
-
 for i in range(0, T):
     if(size==1):
         break
     comm.Barrier()
-    #print the intensity every time
-    if(rank==specialRank):
-        print "%f" % intensities[slot - 1][offset][0]
 
     #first process special only sends to its right
     if(rank==0):
@@ -172,6 +165,9 @@ for i in range(0, T):
                     last = intensities[i][j][1]
                     last2 = intensities[i][j][2]
                     intensities[i][j][0] = CalculateNewIntensity(top, left, right, bottom,last, last2,p ,n)
+    
+    if(rank==centerRank):
+        print "%f" % intensities[slot - 1][offset][0]
 
     #update edges
     if(rank==0):
@@ -212,10 +208,7 @@ for i in range(0, T):
 for i in range(0, T):
     if(size!=1):
         break
-    #print the intensity every time
-    if(rank==specialRank):
-        print "%f" % intensities[slot - 1][offset][0]    
-
+    
     #wait for everyone to send and receive before proceeding
     for i in range(0, rowLength):
         for j in range (0, arrayWidth):
@@ -252,3 +245,5 @@ for i in range(0, T):
         for j in range (0, arrayWidth):
             intensities[i][j][2] = intensities[i][j][1]
             intensities[i][j][1] = intensities[i][j][0]
+    if(rank==centerRank):
+        print "%f" % intensities[slot - 1][offset][0]    
