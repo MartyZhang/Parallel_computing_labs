@@ -220,11 +220,8 @@ for i in range(0, T):
     if(size!=1):
         break
     #print the intensity every time
-    print "\n current iteration %d" % i
-    for i in range(0, rowLength):
-        print ""
-        for j in range(0, rowLength):
-            print ("[%f]" % intensities[i][j][0]),
+    if(rank==specialRank):
+        print "Rank N/2 has Intensities: %f\n" % intensities[slot][offset][0]    
 
     #wait for everyone to send and receive before proceeding
     for i in range(0, rowLength):
