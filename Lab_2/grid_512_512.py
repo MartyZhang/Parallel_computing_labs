@@ -246,7 +246,7 @@ for i in range(0, T):
         intensities[rowLength-1][i][0] = G*intensities[rowLength-2][i][0]
         #sides
     for k in range(1, rowLength-1):
-        intensities[k][arrayWidth-1][0] = intensities[k][arrayWidth-2][0]
+        intensities[k][arrayWidth-1][0] = G*intensities[k][arrayWidth-2][0]
 
     #update corners
     intensities[0][0][0] = G*intensities[1][0][0]
