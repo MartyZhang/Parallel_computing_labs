@@ -201,9 +201,12 @@ for i in range(0, T):
         intensities[511][0][0] = G*intensities[510][0][0]
     elif(rank==size-1):
         intensities[0][arrayWidth-1][0] = G*intensities[0][arrayWidth-2][0]
-        intensities[511][arrayWidth-1][0] = G*intensities[510][arrayWidth-2][0]
+        intensities[511][arrayWidth-1][0] = G*intensities[511][arrayWidth-2][0]
     #push everything down
+
     for i in range(0,512):
         for j in range (0, arrayWidth):
             intensities[i][j][2] = intensities[i][j][1]
             intensities[i][j][1] = intensities[i][j][0]
+
+    comm.Barrier()
