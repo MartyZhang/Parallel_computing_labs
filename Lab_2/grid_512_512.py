@@ -3,19 +3,11 @@ from mpi4py import MPI
 import numpy
 import sys
 
-import direction_calculation
-import edge_detection
-
 # Constants
 n = 0.0002
 p = 0.5
 G = 0.75
-rowLength = 4
-
-
-# Create a 3D Array with  
-
-# rowLength must be divisible by the number of processes
+rowLength = 512
 
 comm = MPI.COMM_WORLD
 size = MPI.COMM_WORLD.Get_size()
@@ -25,32 +17,33 @@ name = MPI.Get_processor_name()
 #divide into rowLength by rowLength/p arrays
 T = int(sys.argv[1])
 arrayWidth = int(rowLength/size)
+
+# rowLength must be divisible by the number of processes
 assert rowLength % size == 0
-intensities = numpy.zeros((rowLength, arrayWidth, 3), dtype=numpy.float64)
-intensities = numpy.zeros((rowLength, arrayWidth, 3), dtype=numpy.float64)
+
+intensities = numpy.zeros((rowLength, arrayWidth, 3), dtype=numpy.float32)
+intensities = numpy.zeros((rowLength, arrayWidth, 3), dtype=numpy.float32)
 
 #we're trying to find the 257th slot in the array since [256][256] is technically 257,257
 #subtract by 1 to get correct index
 slot = rowLength/2 + 1
-print "%d" % slot
 offset = (slot)%arrayWidth - 1
-print "%d" % offset
 
 #special rank is the process which contains 257,257
 specialRank = int(slot/arrayWidth)
 #initialize that slot to 1
 if(rank==specialRank):
     if(rank==specialRank):
-        print "Rank N/2 has Intensities: %f\n" % intensities[slot-1][offset][0]
+        print "%f" % intensities[slot-1][offset][0]
     #initialize the first drum hit
     intensities[slot-1][offset][0] = 1.0
     intensities[slot-1][offset][1] = 1.0
 #buffers to send and receive
-leftArray = numpy.zeros((rowLength), dtype=numpy.float64)
-rightArray = numpy.zeros((rowLength), dtype=numpy.float64)
+leftArray = numpy.zeros((rowLength), dtype=numpy.float32)
+rightArray = numpy.zeros((rowLength), dtype=numpy.float32)
 
-leftArrayReceive = numpy.zeros((rowLength), dtype=numpy.float64)
-rightArrayReceive = numpy.zeros((rowLength), dtype=numpy.float64)
+leftArrayReceive = numpy.zeros((rowLength), dtype=numpy.float32)
+rightArrayReceive = numpy.zeros((rowLength), dtype=numpy.float32)
 
 #from q1
 def Send(rank, intensity, tag):
@@ -71,7 +64,7 @@ for i in range(0, T):
     comm.Barrier()
     #print the intensity every time
     if(rank==specialRank):
-        print "Rank N/2 has Intensities: %f\n" % intensities[slot][offset][0]
+        print "%f" % intensities[slot - 1][offset][0]
 
     #first process special only sends to its right
     if(rank==0):
@@ -221,7 +214,7 @@ for i in range(0, T):
         break
     #print the intensity every time
     if(rank==specialRank):
-        print "Rank N/2 has Intensities: %f\n" % intensities[slot][offset][0]    
+        print "%f" % intensities[slot - 1][offset][0]    
 
     #wait for everyone to send and receive before proceeding
     for i in range(0, rowLength):
@@ -259,5 +252,3 @@ for i in range(0, T):
         for j in range (0, arrayWidth):
             intensities[i][j][2] = intensities[i][j][1]
             intensities[i][j][1] = intensities[i][j][0]
-
-
