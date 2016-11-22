@@ -1,0 +1,1 @@
+sshpass -p "martinsucks" ssh -o StrictHostKeyChecking=no labgroup8@132.206.77.19
