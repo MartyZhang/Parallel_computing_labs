@@ -1,130 +1,130 @@
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-
+#include "lib/lodepng.h"
 #include <stdio.h>
-#include <time.h>
 
-#include "lodepng.h"
+__global__ void rectify(unsigned char *output, cudaTextureObject_t texObj, int width, int height, int output_width, int output_height)
+{
+    unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-cudaError_t processWithCuda(unsigned char * h_input_image, unsigned char * h_output_image, const int IMAGE_BYTES, const int IMAGE_SIZE);
+    if (!(x < width && y < height))
+	return;
 
-__global__ void rectify(unsigned char* d_output_image, unsigned char* d_input_image) {
-	int idx = blockDim.x*blockIdx.x + threadIdx.x;
-	d_output_image[4 * idx + 0] = d_input_image[4 * idx + 0] < 127 ? 127 : d_input_image[4 * idx + 0];
-	d_output_image[4 * idx + 1] = d_input_image[4 * idx + 1] < 127 ? 127 : d_input_image[4 * idx + 1];
-	d_output_image[4 * idx + 2] = d_input_image[4 * idx + 2] < 127 ? 127 : d_input_image[4 * idx + 2];
-	d_output_image[4 * idx + 3] = 255;
-
+    uchar4 pixel = tex2D<uchar4>(texObj, x, y);
+    output[(y * width + x) * 4] = pixel.x < 127 ? 127 : pixel.x;
+    output[(y * width + x) * 4 + 1] = pixel.y < 127 ? 127 : pixel.y;
+    output[(y * width + x) * 4 + 2] = pixel.z < 127 ? 127 : pixel.z;
+    output[(y * width + x) * 4 + 3] = 255;
 }
 
-void process(char *input_filename, char *output_filename, int num_threads) {
-	unsigned error;
-	unsigned char *h_input_image, *h_output_image;
-	unsigned width, height;
+//cudaError_t processWithCuda(Image *input, Image *output)
+cudaError_t processWithCuda(unsigned char *input, int inWidth, int inHeight, unsigned char *output, int outWidth, int outHeight)
+{
+    cudaError_t cudaStatus;
+    unsigned char *out;
+    const int INBYTES = (inWidth * inHeight * 4 * sizeof(unsigned char));
+    const int OUTBYTES = (outWidth * outHeight * 4 * sizeof(unsigned char));
 
-	error = lodepng_decode32_file(&h_input_image, &width, &height, input_filename);
-	if (error) printf("error %u: %s\n", error, lodepng_error_text(error));
+    // Invoke kernel
+    dim3 dimBlock(32, 32);
+    dim3 dimGrid((inWidth + dimBlock.x - 1) / dimBlock.x, (inHeight + dimBlock.y - 1) / dimBlock.y);
+    
+	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(8, 8, 8, 8, cudaChannelFormatKindUnsigned);
+    cudaArray *cuArray;
+    cudaStatus = cudaMallocArray(&cuArray, &channelDesc, inWidth, inHeight);
+    if (cudaStatus != cudaSuccess)
+    {
+	fprintf(stderr, "cudaMallocArray failed!");
+	return cudaStatus;
+    }
 
-	const int IMAGE_SIZE = width*height;
-	const int IMAGE_BYTES = IMAGE_SIZE * 4 * sizeof(unsigned char);
+    // Copy input vectors from host memory to GPU buffers.
+    cudaStatus = cudaMemcpyToArray(cuArray, 0, 0, input, INBYTES, cudaMemcpyHostToDevice);
+    if (cudaStatus != cudaSuccess)
+    {
+	fprintf(stderr, "cudaMemcpy failed!");
+	return cudaStatus;
+    }
 
-	h_output_image = (unsigned char *)malloc(IMAGE_BYTES);
+    // Specify texture
+    struct cudaResourceDesc resDesc;
+    memset(&resDesc, 0, sizeof(resDesc));
+    resDesc.resType = cudaResourceTypeArray;
+    resDesc.res.array.array = cuArray;
 
-	cudaError_t cudaStatus = processWithCuda(h_input_image, h_output_image, IMAGE_BYTES, IMAGE_SIZE);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "failed!");
-	}
+    // Set texture reference parameters
+    struct cudaTextureDesc texDesc;
+    memset(&texDesc, 0, sizeof(texDesc));
+    texDesc.addressMode[0] = cudaAddressModeWrap;
+    texDesc.addressMode[1] = cudaAddressModeWrap;
+    texDesc.filterMode = cudaFilterModePoint;
+    texDesc.normalizedCoords = 0;
 
-	clock_t begin = clock();
-	
-	int remainder = IMAGE_SIZE%1024;
-	for (int idx = IMAGE_SIZE - remainder; idx < IMAGE_SIZE; idx++) {
-		h_output_image[4 * idx + 0] = h_input_image[4 * idx + 0] < 127 ? 127 : h_input_image[4 * idx + 0];
-		h_output_image[4 * idx + 1] = h_input_image[4 * idx + 1] < 127 ? 127 : h_input_image[4 * idx + 1];
-		h_output_image[4 * idx + 2] = h_input_image[4 * idx + 2] < 127 ? 127 : h_input_image[4 * idx + 2];
-		h_output_image[4 * idx + 3] = 255;
-	}
+    // Create texture object
+    cudaTextureObject_t texObj = 0;
+	cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL);
 
-	clock_t end = clock();
-	double total = (double)(end - begin) / CLOCKS_PER_SEC * 1000.0;
+    cudaStatus = cudaMalloc(&out, OUTBYTES);
+    if (cudaStatus != cudaSuccess)
+    {
+	fprintf(stderr, "cudaMalloc failed!");
+	goto Error;
+    }
 
-	printf("runtime is %f ms \n", total);
-	lodepng_encode32_file(output_filename, h_output_image, width, height);
+    rectify<<<dimGrid, dimBlock>>>(out, texObj, inWidth, inHeight, outWidth, outHeight);
 
-	free(h_input_image);
-	free(h_output_image);
-}
+    // Check for any errors launching the kernel
+    cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess)
+    {
+	fprintf(stderr, "rectify launch failed: %s\n", cudaGetErrorString(cudaStatus));
+	goto Error;
+    }
 
-cudaError_t processWithCuda(unsigned char * h_input_image, unsigned char * h_output_image, const int IMAGE_BYTES, const int IMAGE_SIZE) {
-	cudaError_t cudaStatus;
-	unsigned char * d_input_image = 0;
-	unsigned char * d_output_image = 0;
-
-	// Choose which GPU to run on, change this on a multi-GPU system.
-	cudaStatus = cudaSetDevice(0);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-		goto Error;
-	}
-
-	// Allocate GPU buffers for three vectors (two input, one output)    .
-	cudaStatus = cudaMalloc(&d_input_image, IMAGE_BYTES);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMalloc failed!");
-		goto Error;
-	}
-
-	cudaStatus = cudaMalloc(&d_output_image, IMAGE_BYTES);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMalloc failed!");
-		goto Error;
-	}
-
-	// Copy input vectors from host memory to GPU buffers.
-	cudaStatus = cudaMemcpy(d_input_image, h_input_image, IMAGE_BYTES, cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
-		goto Error;
-	}
-	
-	int block_size = 1024;
-	rectify << <block_size, IMAGE_SIZE / block_size >> >(d_output_image, d_input_image);
-
-	// Check for any errors launching the kernel
-	cudaStatus = cudaGetLastError();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "rectify launch failed: %s\n", cudaGetErrorString(cudaStatus));
-		goto Error;
-	}
-
-	// cudaDeviceSynchronize waits for the kernel to finish, and returns
-	// any errors encountered during the launch.
-	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching rectify!\n", cudaStatus);
-		goto Error;
-	}
-
-	// Copy output vector from GPU buffer to host memory.
-	cudaStatus = cudaMemcpy(h_output_image, d_output_image, IMAGE_BYTES, cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
-		goto Error;
-	}
+    // Copy output vector from GPU buffer to host memory.
+    cudaStatus = cudaMemcpy(output, out, OUTBYTES, cudaMemcpyDeviceToHost);
+    if (cudaStatus != cudaSuccess)
+    {
+	fprintf(stderr, "cudaMemcpy failed!");
+	goto Error;
+    }
 
 Error:
-	cudaFree(d_output_image);
-	cudaFree(d_input_image);
+    cudaDestroyTextureObject(texObj);
+    cudaFreeArray(cuArray);
+    cudaFree(out);
 
-	return cudaStatus;
+    return cudaStatus;
 }
 
-int main(int argc, char *argv[]) {
-	char *input_filename = argv[1];
-	char *output_filename = argv[2];
-	int num_threads = atoi(argv[3]);
+void process(char *input_filename, char *output_filename)
+{
+    unsigned error = 0;
+    unsigned char *input, *output;
+    unsigned inWidth, inHeight, outWidth, outHeight;
 
-	process(input_filename, output_filename, num_threads);
+    if (lodepng_decode32_file(&input, &inWidth, &inHeight, input_filename))
+	printf("error %u: %s\n", error, lodepng_error_text(error));
 
-	return 0;
+    outWidth = inWidth;
+    outHeight = inHeight;
+    output = (unsigned char *)malloc(outWidth * outHeight * 4 * sizeof(unsigned char));
+
+    cudaError_t cudaStatus = processWithCuda(input, inWidth, inHeight, output, outWidth, outHeight);
+    if (cudaStatus != cudaSuccess)
+    {
+	fprintf(stderr, "failed!");
+    }
+
+    lodepng_encode32_file(output_filename, output, outWidth, outHeight);
+
+    free(input);
+    free(output);
+}
+
+int main(int argc, char *argv[])
+{
+    char *input_filename = argv[1];
+    char *output_filename = argv[2];
+    process(input_filename, output_filename);
+    return 0;
 }
