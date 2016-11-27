@@ -1,0 +1,1 @@
+sshpass -p "martinsucks" scp -o StrictHostKeyChecking=no -r labgroup8@132.206.77.19:~/lab3/out.png out.png
